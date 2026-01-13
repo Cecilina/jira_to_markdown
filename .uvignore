@@ -1,0 +1,12 @@
+# uv configuration
+# This file tells uv which files to ignore
+
+# Output directory
+output/
+
+# Logs
+logs/
+
+# Config files with credentials
+.env
+config/config.yaml

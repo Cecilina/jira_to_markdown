@@ -1,0 +1,55 @@
+# JIRA to Markdown Converter Configuration
+# Copy this file to config.yaml and customize as needed
+# Credentials should be set in .env file, not here
+
+jira:
+  # JIRA instance URL (can be overridden by JIRA_URL environment variable)
+  url: ""
+  # Username (can be overridden by JIRA_USERNAME environment variable)
+  username: ""
+  # API token (can be overridden by JIRA_API_TOKEN environment variable)
+  api_token: ""
+  # Verify SSL certificates
+  verify_ssl: true
+
+query:
+  # Default JQL query for fetching tickets
+  jql: "project = PROJ ORDER BY created DESC"
+  # Maximum number of results to fetch
+  max_results: 100
+  # Fields to include (* for all, or comma-separated list)
+  fields: "*all"
+
+output:
+  # Directory where markdown files will be saved
+  directory: "./output"
+  # Filename format (available variables: {key}, {summary}, {created}, {updated})
+  filename_format: "{key}.md"
+  # Allow overwriting existing files
+  overwrite: false
+
+markdown:
+  # Include metadata table at the top of each ticket
+  include_metadata_table: true
+  # Include comments section
+  include_comments: true
+  # Include attachments section
+  include_attachments: true
+  # Include subtasks section
+  include_subtasks: true
+  # Include links section
+  include_links: true
+  # Date format for timestamps (Python strftime format)
+  date_format: "%Y-%m-%d %H:%M:%S"
+  # Convert JIRA markup to Markdown
+  convert_markup: true
+
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  # Log file path
+  file: "./logs/jira_to_markdown.log"
+  # Log to console
+  console: true
+  # Console log level (can be different from file)
+  console_level: "INFO"
