@@ -125,8 +125,9 @@ def test_connection(ctx):
 @click.argument('ticket_key')
 @click.option('--output', '-o', help='Output directory (overrides config)')
 @click.option('--overwrite', is_flag=True, help='Overwrite existing files')
+@click.option('--download-images', 'download_imgs', is_flag=True, help='Download images after conversion')
 @click.pass_context
-def fetch(ctx, ticket_key, output, overwrite):
+def fetch(ctx, ticket_key, output, overwrite, download_imgs):
     """
     Fetch a single JIRA ticket and convert to Markdown.
 
@@ -165,6 +166,10 @@ def fetch(ctx, ticket_key, output, overwrite):
 
         click.echo(click.style(f"✓ Successfully written to {filepath}", fg='green'))
 
+        # Download images if requested
+        if download_imgs or config.images_download:
+            _run_image_download(ctx, output_dir)
+
     except TicketNotFoundError as e:
         click.echo(click.style(f"✗ {e}", fg='red'), err=True)
         sys.exit(1)
@@ -185,8 +190,9 @@ def fetch(ctx, ticket_key, output, overwrite):
 @click.option('--max-results', '-n', type=int, help='Maximum number of results (default: unlimited)')
 @click.option('--output', '-o', help='Output directory (overrides config)')
 @click.option('--overwrite', is_flag=True, help='Overwrite existing files')
+@click.option('--download-images', 'download_imgs', is_flag=True, help='Download images after conversion')
 @click.pass_context
-def query(ctx, jql_query, max_results, output, overwrite):
+def query(ctx, jql_query, max_results, output, overwrite, download_imgs):
     """
     Fetch tickets using JQL query and convert to Markdown.
 
@@ -239,6 +245,10 @@ def query(ctx, jql_query, max_results, output, overwrite):
         click.echo(click.style(f"✓ Successfully processed {success_count}/{len(tickets)} tickets", fg='green'))
         click.echo(f"Output directory: {output_dir}")
 
+        # Download images if requested
+        if download_imgs or config.images_download:
+            _run_image_download(ctx, output_dir)
+
     except (JiraConnectionError, JiraAuthenticationError) as e:
         click.echo(click.style(f"✗ JIRA error: {e}", fg='red'), err=True)
         sys.exit(1)
@@ -253,8 +263,9 @@ def query(ctx, jql_query, max_results, output, overwrite):
 @click.option('--file', '-f', type=click.Path(exists=True), help='Read ticket keys from file (one per line)')
 @click.option('--output', '-o', help='Output directory (overrides config)')
 @click.option('--overwrite', is_flag=True, help='Overwrite existing files')
+@click.option('--download-images', 'download_imgs', is_flag=True, help='Download images after conversion')
 @click.pass_context
-def bulk(ctx, ticket_keys, file, output, overwrite):
+def bulk(ctx, ticket_keys, file, output, overwrite, download_imgs):
     """
     Fetch multiple specific tickets and convert to Markdown.
 
@@ -320,6 +331,10 @@ def bulk(ctx, ticket_keys, file, output, overwrite):
         click.echo(click.style(f"✓ Successfully processed {success_count}/{len(keys)} tickets", fg='green'))
         click.echo(f"Output directory: {output_dir}")
 
+        # Download images if requested
+        if download_imgs or config.images_download:
+            _run_image_download(ctx, output_dir)
+
     except (JiraConnectionError, JiraAuthenticationError) as e:
         click.echo(click.style(f"✗ JIRA error: {e}", fg='red'), err=True)
         sys.exit(1)
@@ -371,6 +386,123 @@ def list_fields(ctx):
         logger.exception("Unexpected error")
         click.echo(click.style(f"✗ Error: {e}", fg='red'), err=True)
         sys.exit(1)
+
+
+@cli.command('download-images')
+@click.option('--directory', '-d', help='Directory containing markdown files (default: output directory)')
+@click.option('--images-dir', '-i', help='Directory to save images (default: {output}/images)')
+@click.option('--dry-run', is_flag=True, help='Show what would be downloaded without downloading')
+@click.pass_context
+def download_images(ctx, directory, images_dir, dry_run):
+    """
+    Download images from markdown files.
+
+    Scans markdown files for remote image URLs (JIRA attachments and external),
+    downloads them locally, and updates the markdown files with relative paths.
+
+    Can be re-run to retry failed downloads.
+    """
+    config = ctx.obj.config
+    logger = ctx.obj.logger
+
+    try:
+        from .image_downloader import ImageDownloader
+
+        output_dir = directory or config.output_directory
+        if images_dir is None:
+            images_dir = config.get('images.directory', os.path.join(output_dir, 'images'))
+
+        click.echo(f"Scanning markdown files in: {output_dir}")
+        click.echo(f"Images will be saved to: {images_dir}")
+
+        if dry_run:
+            click.echo(click.style("(Dry run - no files will be modified)", fg='yellow'))
+
+        downloader = ImageDownloader(
+            output_dir=output_dir,
+            images_dir=images_dir,
+            jira_url=config.jira_url,
+            jira_username=config.jira_username,
+            jira_api_token=config.jira_api_token,
+            verify_ssl=config.jira_verify_ssl
+        )
+
+        if dry_run:
+            md_files = list(Path(output_dir).glob('*.md'))
+            total_images = 0
+
+            for md_file in md_files:
+                content = md_file.read_text(encoding='utf-8')
+                images = downloader._find_images(content)
+                remote_images = [img for img in images if img.url.startswith(('http://', 'https://'))]
+                if remote_images:
+                    click.echo(f"  {md_file.name}: {len(remote_images)} remote image(s)")
+                    total_images += len(remote_images)
+
+            click.echo(f"\nTotal: {total_images} remote images found in {len(md_files)} files")
+            return
+
+        results = downloader.process_directory()
+
+        total_found = sum(r['images_found'] for r in results.values())
+        total_downloaded = sum(r['images_downloaded'] for r in results.values())
+        total_failed = sum(r['images_failed'] for r in results.values())
+        total_skipped = sum(r['images_skipped'] for r in results.values())
+
+        click.echo("")
+        click.echo(click.style("Summary:", bold=True))
+        click.echo(f"  Files processed: {len(results)}")
+        click.echo(f"  Images found: {total_found}")
+        click.echo(click.style(f"  Images downloaded: {total_downloaded}", fg='green'))
+        if total_skipped:
+            click.echo(f"  Images skipped (local): {total_skipped}")
+        if total_failed:
+            click.echo(click.style(f"  Images failed: {total_failed}", fg='red'))
+
+        all_errors = []
+        for filename, result in results.items():
+            for error in result.get('errors', []):
+                all_errors.append(f"  {filename}: {error}")
+
+        if all_errors and ctx.obj.verbose:
+            click.echo(click.style("\nErrors:", fg='red'))
+            for error in all_errors[:10]:
+                click.echo(error)
+            if len(all_errors) > 10:
+                click.echo(f"  ... and {len(all_errors) - 10} more errors")
+
+    except Exception as e:
+        logger.exception("Unexpected error")
+        click.echo(click.style(f"✗ Error: {e}", fg='red'), err=True)
+        sys.exit(1)
+
+
+def _run_image_download(ctx, output_dir: str):
+    """Helper to run image download post-processor."""
+    from .image_downloader import ImageDownloader
+
+    config = ctx.obj.config
+    images_dir = config.get('images.directory', os.path.join(output_dir, 'images'))
+
+    click.echo("\nDownloading images...")
+
+    downloader = ImageDownloader(
+        output_dir=output_dir,
+        images_dir=images_dir,
+        jira_url=config.jira_url,
+        jira_username=config.jira_username,
+        jira_api_token=config.jira_api_token,
+        verify_ssl=config.jira_verify_ssl
+    )
+
+    results = downloader.process_directory()
+    total_downloaded = sum(r['images_downloaded'] for r in results.values())
+    total_failed = sum(r['images_failed'] for r in results.values())
+
+    if total_downloaded > 0:
+        click.echo(click.style(f"  Downloaded {total_downloaded} image(s)", fg='green'))
+    if total_failed > 0:
+        click.echo(click.style(f"  Failed: {total_failed} image(s)", fg='yellow'))
 
 
 def main():

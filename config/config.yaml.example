@@ -53,3 +53,11 @@ logging:
   console: true
   # Console log level (can be different from file)
   console_level: "INFO"
+
+images:
+  # Automatically download images after conversion
+  # Can also use --download-images flag on fetch/query/bulk commands
+  download: false
+  # Directory where images will be saved (relative to current directory)
+  # Use jira-to-md download-images command to download images from existing markdown files
+  directory: "./output/images"

@@ -86,6 +86,10 @@ class Config:
                 'file': './logs/jira_to_markdown.log',
                 'console': True,
                 'console_level': 'INFO'
+            },
+            'images': {
+                'download': False,
+                'directory': './output/images'
             }
         }
 
@@ -217,6 +221,16 @@ class Config:
     def log_console_level(self) -> str:
         """Get console log level."""
         return self.get('logging.console_level', 'INFO')
+
+    @property
+    def images_download(self) -> bool:
+        """Get auto-download images setting."""
+        return self.get('images.download', False)
+
+    @property
+    def images_directory(self) -> str:
+        """Get images directory."""
+        return self.get('images.directory', './output/images')
 
     def to_dict(self) -> Dict[str, Any]:
         """Return configuration as dictionary."""
