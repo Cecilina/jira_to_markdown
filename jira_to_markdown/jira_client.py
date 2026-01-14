@@ -143,7 +143,7 @@ class JiraClient:
             jql: JQL query string
             max_results: Maximum number of results
             fields: Fields to include
-            start_at: Starting index for pagination
+            start_at: Starting index for pagination (ignored for Jira Cloud)
 
         Returns:
             List of JIRA issue objects
@@ -156,12 +156,21 @@ class JiraClient:
 
         try:
             self.logger.debug(f"Searching issues with JQL: {jql}")
-            issues = self._jira.search_issues(
-                jql,
-                maxResults=max_results,
-                startAt=start_at,
-                fields=fields
-            )
+            # Use enhanced_search_issues for Jira Cloud (search_issues is deprecated)
+            if hasattr(self._jira, 'enhanced_search_issues'):
+                issues = self._jira.enhanced_search_issues(
+                    jql,
+                    maxResults=max_results,
+                    fields=fields
+                )
+            else:
+                # Fallback for older jira-python versions or Jira Server
+                issues = self._jira.search_issues(
+                    jql,
+                    maxResults=max_results,
+                    startAt=start_at,
+                    fields=fields
+                )
             self.logger.info(f"Found {len(issues)} issues")
             return issues
         except JIRAError as e:
@@ -175,7 +184,7 @@ class JiraClient:
         Args:
             jql: JQL query string
             fields: Fields to include
-            batch_size: Number of results per request
+            batch_size: Number of results per request (used for Jira Server only)
 
         Returns:
             List of all matching JIRA issue objects
@@ -183,25 +192,46 @@ class JiraClient:
         Raises:
             JiraConnectionError: If search fails
         """
-        all_issues = []
-        start_at = 0
+        if not self._jira:
+            self.connect()
 
-        while True:
-            issues = self.search_issues(jql, max_results=batch_size,
-                                       fields=fields, start_at=start_at)
+        try:
+            self.logger.debug(f"Searching all issues with JQL: {jql}")
+            # Use enhanced_search_issues for Jira Cloud - it auto-paginates when maxResults=0
+            if hasattr(self._jira, 'enhanced_search_issues'):
+                issues = list(self._jira.enhanced_search_issues(
+                    jql,
+                    maxResults=0,  # 0 means fetch all with auto-pagination
+                    fields=fields
+                ))
+                self.logger.info(f"Retrieved {len(issues)} issues total")
+                return issues
+            else:
+                # Fallback for older jira-python versions or Jira Server
+                all_issues = []
+                start_at = 0
 
-            if not issues:
-                break
+                while True:
+                    issues = self._jira.search_issues(
+                        jql,
+                        maxResults=batch_size,
+                        startAt=start_at,
+                        fields=fields
+                    )
 
-            all_issues.extend(issues)
-            start_at += len(issues)
+                    if not issues:
+                        break
 
-            # If we got fewer results than batch_size, we've reached the end
-            if len(issues) < batch_size:
-                break
+                    all_issues.extend(issues)
+                    start_at += len(issues)
 
-        self.logger.info(f"Retrieved {len(all_issues)} issues total")
-        return all_issues
+                    if len(issues) < batch_size:
+                        break
+
+                self.logger.info(f"Retrieved {len(all_issues)} issues total")
+                return all_issues
+        except JIRAError as e:
+            raise JiraConnectionError(f"Failed to search issues: {e.text}")
 
     def get_custom_fields(self) -> Dict[str, str]:
         """
