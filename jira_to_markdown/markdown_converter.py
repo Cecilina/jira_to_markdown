@@ -45,7 +45,7 @@ class MarkdownConverter:
         # Description
         if ticket_data.get('description'):
             sections.append("## Description\n")
-            sections.append(self._render_description(ticket_data['description']))
+            sections.append(self._render_description(ticket_data['description'], ticket_data.get('attachments')))
             sections.append("")
 
         # Comments
@@ -149,13 +149,13 @@ class MarkdownConverter:
 
         return "\n".join(lines)
 
-    def _render_description(self, description: str) -> str:
+    def _render_description(self, description: str, attachments: List[Dict[str, Any]] = None) -> str:
         """Render description with JIRA markup conversion."""
         if not description:
             return "_No description provided._"
 
         if self.config.get('markdown.convert_markup', True):
-            description = self._convert_jira_markup(description)
+            description = self._convert_jira_markup(description, attachments)
 
         return description
 
@@ -251,18 +251,31 @@ class MarkdownConverter:
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return f"---\n*Generated on {now} by JIRA to Markdown Converter*"
 
-    def _convert_jira_markup(self, text: str) -> str:
+    def _convert_jira_markup(self, text: str, attachments: List[Dict[str, Any]] = None) -> str:
         """
         Convert JIRA markup to Markdown.
 
         Args:
             text: Text with JIRA markup
+            attachments: List of attachment dicts with 'filename' and 'url' keys
 
         Returns:
             Text with Markdown formatting
         """
         if not text:
             return ""
+
+        # Build attachment lookup map (normalize filenames for matching)
+        attachment_map = {}
+        if attachments:
+            for att in attachments:
+                filename = att.get('filename', '')
+                url = att.get('url', '')
+                # Store with original filename
+                attachment_map[filename] = url
+                # Also store normalized version (tildes to dashes)
+                normalized = filename.replace('~~', '-').replace('~', '-')
+                attachment_map[normalized] = url
 
         # Code blocks (must be first to avoid affecting other conversions)
         text = re.sub(r'\{code:?([^}]*)\}(.*?)\{code\}',
@@ -290,6 +303,17 @@ class MarkdownConverter:
 
         # Strikethrough
         text = re.sub(r'-(\S.*?)-', r'~~\1~~', text)
+
+        # Images !filename! or !filename|attrs! (after strikethrough to avoid dash conversion)
+        def replace_image(match):
+            filename = match.group(1)
+            # Normalize filename (Jira uses ~~ in markup but - in actual filename)
+            normalized_filename = filename.replace('~~', '-').replace('~', '-')
+            # Try to find attachment URL
+            url = attachment_map.get(filename) or attachment_map.get(normalized_filename) or normalized_filename
+            return f'![{normalized_filename}]({url})'
+
+        text = re.sub(r'!([^|!\n]+)(?:\|[^!]*)?!', replace_image, text)
 
         # Monospace
         text = re.sub(r'\{\{(.*?)\}\}', r'`\1`', text)
