@@ -34,6 +34,7 @@ class ImageDownloader:
 
     IMAGE_PATTERN = re.compile(r'!\[([^\]]*)\]\(([^)]+)\)')
     IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico'}
+    MAX_IMAGE_SIZE = 50 * 1024 * 1024  # 50MB
 
     def __init__(
         self,
@@ -287,8 +288,12 @@ class ImageDownloader:
             )
 
             try:
+                downloaded_size = 0
                 with os.fdopen(temp_fd, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
+                        downloaded_size += len(chunk)
+                        if downloaded_size > self.MAX_IMAGE_SIZE:
+                            raise Exception(f"Image exceeds maximum size of {self.MAX_IMAGE_SIZE} bytes")
                         f.write(chunk)
 
                 os.replace(temp_path, local_path)
