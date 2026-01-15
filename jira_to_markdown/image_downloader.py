@@ -283,29 +283,15 @@ class ImageDownloader:
 
             self._ensure_directory(local_path.parent)
 
-            temp_fd, temp_path = tempfile.mkstemp(
-                dir=local_path.parent,
-                prefix=f'.{local_path.name}.',
-                suffix='.tmp'
-            )
-
-            try:
+            def write_chunks(f):
                 downloaded_size = 0
-                with os.fdopen(temp_fd, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        downloaded_size += len(chunk)
-                        if downloaded_size > self.MAX_IMAGE_SIZE:
-                            raise Exception(f"Image exceeds maximum size of {self.MAX_IMAGE_SIZE} bytes")
-                        f.write(chunk)
+                for chunk in response.iter_content(chunk_size=8192):
+                    downloaded_size += len(chunk)
+                    if downloaded_size > self.MAX_IMAGE_SIZE:
+                        raise Exception(f"Image exceeds maximum size of {self.MAX_IMAGE_SIZE} bytes")
+                    f.write(chunk)
 
-                os.replace(temp_path, local_path)
-
-            except Exception as e:
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
-                raise e
+            self._atomic_write(local_path, write_chunks, mode='wb')
 
             return DownloadResult(success=True, local_path=str(local_path), error=None)
 
@@ -329,8 +315,16 @@ class ImageDownloader:
         """Create directory if it doesn't exist."""
         path.mkdir(parents=True, exist_ok=True)
 
-    def _write_atomic(self, filepath: Path, content: str):
-        """Write file content atomically."""
+    def _atomic_write(self, filepath: Path, write_func, mode: str = 'w', encoding: str = None):
+        """
+        Perform atomic file write using a callback function.
+
+        Args:
+            filepath: Target file path
+            write_func: Callback function that receives file handle and writes content
+            mode: File mode ('w' for text, 'wb' for binary)
+            encoding: Encoding for text mode (ignored for binary)
+        """
         temp_fd, temp_path = tempfile.mkstemp(
             dir=filepath.parent,
             prefix=f'.{filepath.name}.',
@@ -338,8 +332,11 @@ class ImageDownloader:
         )
 
         try:
-            with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
-                f.write(content)
+            open_kwargs = {'mode': mode}
+            if 'b' not in mode and encoding:
+                open_kwargs['encoding'] = encoding
+            with os.fdopen(temp_fd, **open_kwargs) as f:
+                write_func(f)
             os.replace(temp_path, filepath)
         except Exception as e:
             try:
@@ -347,3 +344,7 @@ class ImageDownloader:
             except OSError:
                 pass
             raise e
+
+    def _write_atomic(self, filepath: Path, content: str):
+        """Write text content to file atomically."""
+        self._atomic_write(filepath, lambda f: f.write(content), mode='w', encoding='utf-8')
