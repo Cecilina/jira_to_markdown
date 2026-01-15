@@ -118,8 +118,8 @@ class ImageDownloader:
         images = self._find_images(content)
         result['images_found'] = len([img for img in images if self._is_remote_url(img.url)])
 
-        if not images:
-            self.logger.debug(f"No images found in {filepath.name}")
+        if result['images_found'] == 0:
+            self.logger.debug(f"No remote images found in {filepath.name}")
             return result
 
         updated_content = content
