@@ -116,7 +116,7 @@ class ImageDownloader:
             return result
 
         images = self._find_images(content)
-        result['images_found'] = len([img for img in images if img.url.startswith(('http://', 'https://'))])
+        result['images_found'] = len([img for img in images if self._is_remote_url(img.url)])
 
         if not images:
             self.logger.debug(f"No images found in {filepath.name}")
@@ -124,7 +124,7 @@ class ImageDownloader:
 
         updated_content = content
         for img in images:
-            if not img.url.startswith(('http://', 'https://')):
+            if not self._is_remote_url(img.url):
                 result['images_skipped'] += 1
                 continue
 
@@ -193,6 +193,10 @@ class ImageDownloader:
             parsed.netloc == self.jira_domain or
             ('/rest/api/' in url and '/attachment/' in url)
         )
+
+    def _is_remote_url(self, url: str) -> bool:
+        """Check if URL is a remote HTTP/HTTPS URL."""
+        return url.startswith(('http://', 'https://'))
 
     def _extract_ticket_key(self, filepath: Path) -> str:
         """
