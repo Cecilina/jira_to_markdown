@@ -143,7 +143,7 @@ class JiraClient:
             jql: JQL query string
             max_results: Maximum number of results
             fields: Fields to include
-            start_at: Starting index for pagination
+            start_at: Starting index for pagination (ignored for Jira Cloud)
 
         Returns:
             List of JIRA issue objects
@@ -156,12 +156,21 @@ class JiraClient:
 
         try:
             self.logger.debug(f"Searching issues with JQL: {jql}")
-            issues = self._jira.search_issues(
-                jql,
-                maxResults=max_results,
-                startAt=start_at,
-                fields=fields
-            )
+            # Use enhanced_search_issues for Jira Cloud (search_issues is deprecated)
+            if hasattr(self._jira, 'enhanced_search_issues'):
+                issues = self._jira.enhanced_search_issues(
+                    jql,
+                    maxResults=max_results,
+                    fields=fields
+                )
+            else:
+                # Fallback for older jira-python versions or Jira Server
+                issues = self._jira.search_issues(
+                    jql,
+                    maxResults=max_results,
+                    startAt=start_at,
+                    fields=fields
+                )
             self.logger.info(f"Found {len(issues)} issues")
             return issues
         except JIRAError as e:
