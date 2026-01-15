@@ -170,12 +170,12 @@ class JiraClient:
     def search_all_issues(self, jql: str, fields: str = '*all',
                          batch_size: int = 50) -> List[object]:
         """
-        Search for all issues matching JQL with pagination.
+        Search for all issues matching JQL with automatic pagination.
 
         Args:
             jql: JQL query string
             fields: Fields to include
-            batch_size: Number of results per request
+            batch_size: Number of results per request (used internally by JIRA library)
 
         Returns:
             List of all matching JIRA issue objects
@@ -183,25 +183,24 @@ class JiraClient:
         Raises:
             JiraConnectionError: If search fails
         """
-        all_issues = []
-        start_at = 0
+        if not self._jira:
+            self.connect()
 
-        while True:
-            issues = self.search_issues(jql, max_results=batch_size,
-                                       fields=fields, start_at=start_at)
+        try:
+            self.logger.debug(f"Searching all issues with JQL: {jql}")
 
-            if not issues:
-                break
+            # Use maxResults=False to fetch all issues automatically
+            # This works for both JIRA Cloud and Server and avoids deprecation warnings
+            all_issues = self._jira.search_issues(
+                jql,
+                maxResults=False,  # Library handles pagination automatically
+                fields=fields
+            )
 
-            all_issues.extend(issues)
-            start_at += len(issues)
-
-            # If we got fewer results than batch_size, we've reached the end
-            if len(issues) < batch_size:
-                break
-
-        self.logger.info(f"Retrieved {len(all_issues)} issues total")
-        return all_issues
+            self.logger.info(f"Retrieved {len(all_issues)} issues total")
+            return list(all_issues)
+        except JIRAError as e:
+            raise JiraConnectionError(f"Failed to search issues: {e.text}")
 
     def get_custom_fields(self) -> Dict[str, str]:
         """
