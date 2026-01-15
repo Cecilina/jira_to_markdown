@@ -136,7 +136,8 @@ class ImageDownloader:
                 relative_path = self._get_relative_path(filepath.parent, Path(existing_path))
                 updated_content = updated_content.replace(
                     img.full_match,
-                    f'![{img.alt_text}]({relative_path})'
+                    f'![{img.alt_text}]({relative_path})',
+                    1
                 )
                 result['images_downloaded'] += 1
                 continue
@@ -148,7 +149,8 @@ class ImageDownloader:
                 relative_path = self._get_relative_path(filepath.parent, local_path)
                 updated_content = updated_content.replace(
                     img.full_match,
-                    f'![{img.alt_text}]({relative_path})'
+                    f'![{img.alt_text}]({relative_path})',
+                    1
                 )
                 result['images_downloaded'] += 1
                 self.logger.info(f"Downloaded: {local_filename}")
