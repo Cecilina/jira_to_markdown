@@ -179,12 +179,12 @@ class JiraClient:
     def search_all_issues(self, jql: str, fields: str = '*all',
                          batch_size: int = 50) -> List[object]:
         """
-        Search for all issues matching JQL with pagination.
+        Search for all issues matching JQL with automatic pagination.
 
         Args:
             jql: JQL query string
             fields: Fields to include
-            batch_size: Number of results per request (used for Jira Server only)
+            batch_size: Number of results per request (used internally by JIRA library)
 
         Returns:
             List of all matching JIRA issue objects
@@ -197,39 +197,17 @@ class JiraClient:
 
         try:
             self.logger.debug(f"Searching all issues with JQL: {jql}")
-            # Use enhanced_search_issues for Jira Cloud - it auto-paginates when maxResults=0
-            if hasattr(self._jira, 'enhanced_search_issues'):
-                issues = list(self._jira.enhanced_search_issues(
-                    jql,
-                    maxResults=0,  # 0 means fetch all with auto-pagination
-                    fields=fields
-                ))
-                self.logger.info(f"Retrieved {len(issues)} issues total")
-                return issues
-            else:
-                # Fallback for older jira-python versions or Jira Server
-                all_issues = []
-                start_at = 0
 
-                while True:
-                    issues = self._jira.search_issues(
-                        jql,
-                        maxResults=batch_size,
-                        startAt=start_at,
-                        fields=fields
-                    )
+            # Use maxResults=False to fetch all issues automatically
+            # This works for both JIRA Cloud and Server and avoids deprecation warnings
+            all_issues = self._jira.search_issues(
+                jql,
+                maxResults=False,  # Library handles pagination automatically
+                fields=fields
+            )
 
-                    if not issues:
-                        break
-
-                    all_issues.extend(issues)
-                    start_at += len(issues)
-
-                    if len(issues) < batch_size:
-                        break
-
-                self.logger.info(f"Retrieved {len(all_issues)} issues total")
-                return all_issues
+            self.logger.info(f"Retrieved {len(all_issues)} issues total")
+            return list(all_issues)
         except JIRAError as e:
             raise JiraConnectionError(f"Failed to search issues: {e.text}")
 
