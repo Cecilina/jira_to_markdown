@@ -134,11 +134,7 @@ class ImageDownloader:
             if img.url in self._downloaded_files:
                 existing_path = self._downloaded_files[img.url]
                 relative_path = self._get_relative_path(filepath.parent, Path(existing_path))
-                updated_content = updated_content.replace(
-                    img.full_match,
-                    f'![{img.alt_text}]({relative_path})',
-                    1
-                )
+                updated_content = self._replace_image_reference(updated_content, img, relative_path)
                 result['images_downloaded'] += 1
                 continue
 
@@ -147,11 +143,7 @@ class ImageDownloader:
             if download_result.success:
                 self._downloaded_files[img.url] = str(local_path)
                 relative_path = self._get_relative_path(filepath.parent, local_path)
-                updated_content = updated_content.replace(
-                    img.full_match,
-                    f'![{img.alt_text}]({relative_path})',
-                    1
-                )
+                updated_content = self._replace_image_reference(updated_content, img, relative_path)
                 result['images_downloaded'] += 1
                 self.logger.info(f"Downloaded: {local_filename}")
             else:
@@ -164,6 +156,14 @@ class ImageDownloader:
             self.logger.info(f"Updated {filepath.name}")
 
         return result
+
+    def _replace_image_reference(self, content: str, img: ImageInfo, new_path: str) -> str:
+        """Replace an image reference in content with a new path."""
+        return content.replace(
+            img.full_match,
+            f'![{img.alt_text}]({new_path})',
+            1
+        )
 
     def _find_images(self, content: str) -> List[ImageInfo]:
         """Find all image references in markdown content."""
