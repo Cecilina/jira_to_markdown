@@ -1,7 +1,7 @@
 """Tests for markdown converter."""
 
-import pytest
 from datetime import datetime
+import pytest
 from jira_to_markdown.markdown_converter import MarkdownConverter
 
 
