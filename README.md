@@ -18,6 +18,31 @@ A Python command-line tool to convert JIRA tickets to Markdown files using the J
 - Progress tracking for bulk operations
 - Resume capability (skip already exported tickets)
 
+## Claude Code Skill
+
+This tool can be used as a **Claude Code skill**, allowing you to interact with JIRA directly from Claude!
+
+Once set up, you can ask Claude to:
+- "Test my JIRA connection"
+- "Fetch JIRA ticket PROJ-123 and convert it to markdown"
+- "Get all tickets in project MYPROJECT that are in progress"
+- "List available JIRA custom fields"
+
+See [.claudeskills/README.md](.claudeskills/README.md) and [.claudeskills/USAGE.md](.claudeskills/USAGE.md) for full documentation on using this as a Claude skill.
+
+### Quick Start as a Skill
+
+```bash
+# Test connection
+.claudeskills/run.sh test-connection
+
+# Fetch a ticket
+.claudeskills/run.sh fetch PROJ-123
+
+# Query tickets
+.claudeskills/run.sh query "project = MYPROJECT"
+```
+
 ## Installation
 
 ### Prerequisites

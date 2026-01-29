@@ -1,0 +1,191 @@
+{
+  "name": "jira-to-md",
+  "version": "0.1.0",
+  "description": "Convert JIRA tickets to Markdown files using the JIRA REST API",
+  "author": "Your Name",
+  "type": "bash",
+  "entry_point": ".claudeskills/run.sh",
+
+  "commands": {
+    "test-connection": {
+      "description": "Test connection to JIRA instance",
+      "usage": "test-connection"
+    },
+    "fetch": {
+      "description": "Fetch a single JIRA ticket and convert to Markdown",
+      "usage": "fetch <ticket-key> [--output <dir>] [--overwrite] [--download-images]",
+      "parameters": {
+        "ticket_key": {
+          "type": "string",
+          "required": true,
+          "description": "The JIRA ticket key (e.g., PROJ-123)"
+        },
+        "output": {
+          "type": "string",
+          "required": false,
+          "description": "Output directory"
+        },
+        "overwrite": {
+          "type": "flag",
+          "required": false,
+          "description": "Overwrite existing files"
+        },
+        "download_images": {
+          "type": "flag",
+          "required": false,
+          "description": "Download images after conversion"
+        }
+      }
+    },
+    "query": {
+      "description": "Fetch tickets using JQL query and convert to Markdown",
+      "usage": "query \"<jql-query>\" [--max-results <n>] [--output <dir>] [--overwrite] [--download-images]",
+      "parameters": {
+        "jql_query": {
+          "type": "string",
+          "required": true,
+          "description": "JIRA Query Language string (e.g., 'project = PROJ AND status = \"In Progress\"')"
+        },
+        "max_results": {
+          "type": "integer",
+          "required": false,
+          "description": "Maximum number of results"
+        },
+        "output": {
+          "type": "string",
+          "required": false,
+          "description": "Output directory"
+        },
+        "overwrite": {
+          "type": "flag",
+          "required": false,
+          "description": "Overwrite existing files"
+        },
+        "download_images": {
+          "type": "flag",
+          "required": false,
+          "description": "Download images after conversion"
+        }
+      }
+    },
+    "bulk": {
+      "description": "Fetch multiple specific tickets and convert to Markdown",
+      "usage": "bulk <ticket-keys...> [--file <path>] [--output <dir>] [--overwrite] [--download-images]",
+      "parameters": {
+        "ticket_keys": {
+          "type": "array",
+          "required": false,
+          "description": "Space-separated ticket keys (e.g., PROJ-123 PROJ-124)"
+        },
+        "file": {
+          "type": "string",
+          "required": false,
+          "description": "Path to file containing ticket keys (one per line)"
+        },
+        "output": {
+          "type": "string",
+          "required": false,
+          "description": "Output directory"
+        },
+        "overwrite": {
+          "type": "flag",
+          "required": false,
+          "description": "Overwrite existing files"
+        },
+        "download_images": {
+          "type": "flag",
+          "required": false,
+          "description": "Download images after conversion"
+        }
+      }
+    },
+    "list-fields": {
+      "description": "List all custom fields available in JIRA",
+      "usage": "list-fields"
+    },
+    "download-images": {
+      "description": "Download images from markdown files and update references",
+      "usage": "download-images [--directory <dir>] [--images-dir <dir>] [--dry-run]",
+      "parameters": {
+        "directory": {
+          "type": "string",
+          "required": false,
+          "description": "Directory containing markdown files"
+        },
+        "images_dir": {
+          "type": "string",
+          "required": false,
+          "description": "Directory to save images"
+        },
+        "dry_run": {
+          "type": "flag",
+          "required": false,
+          "description": "Show what would be downloaded without downloading"
+        }
+      }
+    }
+  },
+
+  "requirements": {
+    "python": ">=3.8",
+    "uv": true,
+    "environment": [
+      {
+        "name": "JIRA_URL",
+        "description": "Your JIRA instance URL (e.g., https://company.atlassian.net)",
+        "required": true
+      },
+      {
+        "name": "JIRA_USERNAME",
+        "description": "Your JIRA username (email address)",
+        "required": true
+      },
+      {
+        "name": "JIRA_API_TOKEN",
+        "description": "Your JIRA API token (from Atlassian account security)",
+        "required": true
+      }
+    ]
+  },
+
+  "setup_instructions": [
+    "Ensure Python 3.8+ is installed",
+    "Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh",
+    "Install dependencies: uv sync",
+    "Copy .env.example to .env and fill in JIRA credentials",
+    "Test connection: .claudeskills/run.sh test-connection"
+  ],
+
+  "examples": [
+    {
+      "description": "Test JIRA connection",
+      "command": "test-connection"
+    },
+    {
+      "description": "Fetch a single ticket",
+      "command": "fetch PROJ-123"
+    },
+    {
+      "description": "Fetch tickets with JQL query",
+      "command": "query \"project = MYPROJECT AND status = 'In Progress'\" --max-results 50"
+    },
+    {
+      "description": "Bulk fetch multiple tickets",
+      "command": "bulk PROJ-123 PROJ-124 PROJ-125 --overwrite"
+    },
+    {
+      "description": "List custom fields",
+      "command": "list-fields"
+    },
+    {
+      "description": "Download images (dry run)",
+      "command": "download-images --dry-run"
+    }
+  ],
+
+  "output": {
+    "markdown_files": "./output/",
+    "images": "./output/images/",
+    "logs": "./logs/jira_to_markdown.log"
+  }
+}

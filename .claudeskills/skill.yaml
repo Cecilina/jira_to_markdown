@@ -1,0 +1,241 @@
+name: jira-to-md
+version: 0.1.0
+description: Convert JIRA tickets to Markdown files using the JIRA REST API
+author: Juan Chen
+
+# Skill type: bash-based skill that wraps the CLI
+type: bash
+
+# Main commands exposed as skill actions
+commands:
+  # Test JIRA connection
+  test-connection:
+    description: Test connection to JIRA instance
+    script: |
+      cd "${SKILL_ROOT}" && source .venv/bin/activate && jira-to-md test-connection
+
+  # Fetch a single ticket
+  fetch:
+    description: Fetch a single JIRA ticket and convert to Markdown
+    parameters:
+      - name: ticket_key
+        description: The JIRA ticket key (e.g., PROJ-123)
+        required: true
+      - name: output
+        description: Output directory (optional)
+        required: false
+      - name: overwrite
+        description: Overwrite existing files (optional flag)
+        required: false
+      - name: download_images
+        description: Download images after conversion (optional flag)
+        required: false
+    script: |
+      cd "${SKILL_ROOT}" && source .venv/bin/activate
+
+      CMD="jira-to-md fetch ${ticket_key}"
+
+      if [ -n "${output}" ]; then
+        CMD="${CMD} --output ${output}"
+      fi
+
+      if [ "${overwrite}" = "true" ]; then
+        CMD="${CMD} --overwrite"
+      fi
+
+      if [ "${download_images}" = "true" ]; then
+        CMD="${CMD} --download-images"
+      fi
+
+      eval ${CMD}
+
+  # Query tickets using JQL
+  query:
+    description: Fetch tickets using JQL query and convert to Markdown
+    parameters:
+      - name: jql_query
+        description: JIRA Query Language string (e.g., "project = PROJ AND status = 'In Progress'")
+        required: true
+      - name: max_results
+        description: Maximum number of results (optional)
+        required: false
+      - name: output
+        description: Output directory (optional)
+        required: false
+      - name: overwrite
+        description: Overwrite existing files (optional flag)
+        required: false
+      - name: download_images
+        description: Download images after conversion (optional flag)
+        required: false
+    script: |
+      cd "${SKILL_ROOT}" && source .venv/bin/activate
+
+      CMD="jira-to-md query \"${jql_query}\""
+
+      if [ -n "${max_results}" ]; then
+        CMD="${CMD} --max-results ${max_results}"
+      fi
+
+      if [ -n "${output}" ]; then
+        CMD="${CMD} --output ${output}"
+      fi
+
+      if [ "${overwrite}" = "true" ]; then
+        CMD="${CMD} --overwrite"
+      fi
+
+      if [ "${download_images}" = "true" ]; then
+        CMD="${CMD} --download-images"
+      fi
+
+      eval ${CMD}
+
+  # Bulk fetch multiple tickets
+  bulk:
+    description: Fetch multiple specific tickets and convert to Markdown
+    parameters:
+      - name: ticket_keys
+        description: Space-separated ticket keys (e.g., "PROJ-123 PROJ-124 PROJ-125")
+        required: false
+      - name: file
+        description: Path to file containing ticket keys (one per line)
+        required: false
+      - name: output
+        description: Output directory (optional)
+        required: false
+      - name: overwrite
+        description: Overwrite existing files (optional flag)
+        required: false
+      - name: download_images
+        description: Download images after conversion (optional flag)
+        required: false
+    script: |
+      cd "${SKILL_ROOT}" && source .venv/bin/activate
+
+      CMD="jira-to-md bulk"
+
+      if [ -n "${ticket_keys}" ]; then
+        CMD="${CMD} ${ticket_keys}"
+      fi
+
+      if [ -n "${file}" ]; then
+        CMD="${CMD} --file ${file}"
+      fi
+
+      if [ -n "${output}" ]; then
+        CMD="${CMD} --output ${output}"
+      fi
+
+      if [ "${overwrite}" = "true" ]; then
+        CMD="${CMD} --overwrite"
+      fi
+
+      if [ "${download_images}" = "true" ]; then
+        CMD="${CMD} --download-images"
+      fi
+
+      eval ${CMD}
+
+  # List custom fields
+  list-fields:
+    description: List all custom fields available in JIRA
+    script: |
+      cd "${SKILL_ROOT}" && source .venv/bin/activate && jira-to-md list-fields
+
+  # Download images from markdown files
+  download-images:
+    description: Download images from markdown files and update references
+    parameters:
+      - name: directory
+        description: Directory containing markdown files (optional, defaults to output directory)
+        required: false
+      - name: images_dir
+        description: Directory to save images (optional, defaults to {output}/images)
+        required: false
+      - name: dry_run
+        description: Show what would be downloaded without downloading (optional flag)
+        required: false
+    script: |
+      cd "${SKILL_ROOT}" && source .venv/bin/activate
+
+      CMD="jira-to-md download-images"
+
+      if [ -n "${directory}" ]; then
+        CMD="${CMD} --directory ${directory}"
+      fi
+
+      if [ -n "${images_dir}" ]; then
+        CMD="${CMD} --images-dir ${images_dir}"
+      fi
+
+      if [ "${dry_run}" = "true" ]; then
+        CMD="${CMD} --dry-run"
+      fi
+
+      eval ${CMD}
+
+# Configuration requirements
+requirements:
+  environment_variables:
+    - name: JIRA_URL
+      description: Your JIRA instance URL (e.g., https://company.atlassian.net)
+      required: true
+    - name: JIRA_USERNAME
+      description: Your JIRA username (email address)
+      required: true
+    - name: JIRA_API_TOKEN
+      description: Your JIRA API token (from Atlassian account security)
+      required: true
+
+  dependencies:
+    - Python >= 3.8
+    - uv (for dependency management)
+
+# Installation instructions
+setup:
+  description: |
+    This skill requires Python 3.8+ and the JIRA credentials configured in a .env file.
+
+    1. Ensure Python 3.8+ is installed
+    2. Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh
+    3. Install dependencies: uv sync
+    4. Copy .env.example to .env and fill in your JIRA credentials:
+       - JIRA_URL=https://your-company.atlassian.net
+       - JIRA_USERNAME=your.email@example.com
+       - JIRA_API_TOKEN=your_api_token_here
+    5. Test connection: jira-to-md test-connection
+
+# Usage examples
+examples:
+  - description: Test JIRA connection
+    command: test-connection
+
+  - description: Fetch a single ticket
+    command: fetch
+    parameters:
+      ticket_key: PROJ-123
+
+  - description: Fetch tickets using JQL query
+    command: query
+    parameters:
+      jql_query: "project = MYPROJECT AND status = 'In Progress'"
+      max_results: 50
+
+  - description: Bulk fetch multiple tickets
+    command: bulk
+    parameters:
+      ticket_keys: "PROJ-123 PROJ-124 PROJ-125"
+      overwrite: true
+
+  - description: List available custom fields
+    command: list-fields
+
+  - description: Download images from markdown files
+    command: download-images
+    parameters:
+      dry_run: true
+
+# isolated context
+context: fork
+agent: Explore
