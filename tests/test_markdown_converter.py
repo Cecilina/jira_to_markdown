@@ -3,7 +3,6 @@
 import pytest
 from datetime import datetime
 from jira_to_markdown.markdown_converter import MarkdownConverter
-from jira_to_markdown.config import Config
 
 
 class MockConfig:
