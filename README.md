@@ -20,17 +20,69 @@ A Python command-line tool to convert JIRA tickets to Markdown files using the J
 
 ## Claude Code Skill
 
-This tool can be used as a **Claude Code skill**, allowing you to interact with JIRA directly from Claude!
+This tool can be used as a **Claude Code skill**, allowing you to interact with JIRA directly from Claude Code!
 
-Once set up, you can ask Claude to:
+### Global Skill Setup (Use Anywhere)
+
+To use this skill from **any directory** in Claude Code, set it up as a global skill:
+
+**Prerequisites:**
+1. Complete the [Installation](#installation) and [Configuration](#configuration) steps below
+2. Ensure dependencies are installed (`uv sync`)
+3. Configure your JIRA credentials in `.env` file
+
+**Setup:**
+
+1. **Create symlink to global skills directory:**
+
+```bash
+# From within the JIRA_TO_MARKDOWN project directory
+mkdir -p ~/.claude/skills
+ln -s "$(pwd)/.claudeskills" ~/.claude/skills/jira-to-md
+```
+
+2. **Set up environment variable:**
+
+The skill uses the `JIRA_TO_MD_HOME` environment variable to locate the installation. Add this to your shell configuration:
+
+```bash
+# For Zsh (macOS default)
+echo 'export JIRA_TO_MD_HOME="/path/to/JIRA_TO_MARKDOWN"' >> ~/.zshrc
+source ~/.zshrc
+
+# For Bash
+echo 'export JIRA_TO_MD_HOME="/path/to/JIRA_TO_MARKDOWN"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Replace `/path/to/JIRA_TO_MARKDOWN` with your actual installation path. For example:
+```bash
+export JIRA_TO_MD_HOME="$HOME/Documents/Crains/JIRA_TO_MARKDOWN"
+```
+
+> **Note**: Using a symlink (not copy) ensures any updates to the skill are automatically available globally. The `JIRA_TO_MD_HOME` variable allows the skill to find the virtual environment and configuration from any directory, so keep this project in a stable location.
+
+Once set up globally, you can use it from any Claude Code session:
+
+```bash
+# Use slash commands from anywhere
+/jira-to-md test-connection
+/jira-to-md fetch PROJ-123
+/jira-to-md query "project = MYPROJECT AND status = 'In Progress'"
+/jira-to-md bulk PROJ-123 PROJ-124 PROJ-125
+/jira-to-md list-fields
+/jira-to-md download-images --dry-run
+```
+
+Or simply ask Claude naturally:
 - "Test my JIRA connection"
 - "Fetch JIRA ticket PROJ-123 and convert it to markdown"
 - "Get all tickets in project MYPROJECT that are in progress"
 - "List available JIRA custom fields"
 
-See [.claudeskills/README.md](.claudeskills/README.md) and [.claudeskills/USAGE.md](.claudeskills/USAGE.md) for full documentation on using this as a Claude skill.
+### Local Skill Usage (Project Only)
 
-### Quick Start as a Skill
+If you prefer to use the skill only within this project directory:
 
 ```bash
 # Test connection
@@ -42,6 +94,8 @@ See [.claudeskills/README.md](.claudeskills/README.md) and [.claudeskills/USAGE.
 # Query tickets
 .claudeskills/run.sh query "project = MYPROJECT"
 ```
+
+See [.claudeskills/README.md](.claudeskills/README.md) and [.claudeskills/USAGE.md](.claudeskills/USAGE.md) for full documentation on using this as a Claude skill.
 
 ## Installation
 
@@ -362,6 +416,36 @@ logging:
 ```
 
 ## Troubleshooting
+
+### Global skill not working
+
+If the global skill doesn't work from other directories:
+
+1. **Check environment variable is set:**
+   ```bash
+   echo $JIRA_TO_MD_HOME
+   # Should output: /path/to/JIRA_TO_MARKDOWN
+   ```
+
+2. **Verify the path exists:**
+   ```bash
+   ls -la "$JIRA_TO_MD_HOME"
+   # Should show project files
+   ```
+
+3. **Check virtual environment exists:**
+   ```bash
+   ls -la "$JIRA_TO_MD_HOME/.venv/bin/activate"
+   # Should show the activation script
+   ```
+
+4. **Restart your terminal** after adding the environment variable to your shell config
+
+5. **Verify symlink is correct:**
+   ```bash
+   ls -la ~/.claude/skills/jira-to-md
+   # Should show symlink pointing to .claudeskills directory
+   ```
 
 ### Authentication fails
 

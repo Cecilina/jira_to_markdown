@@ -16,22 +16,46 @@ Before using this skill, ensure you have:
 
 ## Setup
 
-1. Navigate to the project directory:
+### For Global Skill Usage (Recommended)
+
+1. **Install the tool:**
    ```bash
-   cd /Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN
+   # Navigate to your chosen installation directory
+   cd /path/to/your/installation
+   git clone <repository-url> JIRA_TO_MARKDOWN
+   cd JIRA_TO_MARKDOWN
    ```
 
-2. Install dependencies:
+2. **Install dependencies:**
    ```bash
    uv sync
    ```
 
-3. Copy `.env.example` to `.env` and configure your JIRA credentials:
+3. **Set up environment variable:**
+
+   Add to your shell configuration (`~/.zshrc` or `~/.bashrc`):
    ```bash
+   export JIRA_TO_MD_HOME="/path/to/your/JIRA_TO_MARKDOWN"
+   ```
+
+   Then reload your shell:
+   ```bash
+   source ~/.zshrc  # or source ~/.bashrc
+   ```
+
+4. **Create global skill symlink:**
+   ```bash
+   mkdir -p ~/.claude/skills
+   ln -s "$JIRA_TO_MD_HOME/.claudeskills" ~/.claude/skills/jira-to-md
+   ```
+
+5. **Configure JIRA credentials:**
+   ```bash
+   cd "$JIRA_TO_MD_HOME"
    cp .env.example .env
    ```
 
-4. Edit `.env` with your JIRA information:
+6. **Edit `.env` with your JIRA information:**
    ```env
    JIRA_URL=https://your-company.atlassian.net
    JIRA_USERNAME=your.email@example.com
@@ -43,11 +67,14 @@ Before using this skill, ensure you have:
    - Click "Create API token"
    - Copy the token to your `.env` file
 
-5. Test the connection:
+7. **Test the connection:**
    ```bash
+   cd "$JIRA_TO_MD_HOME"
    source .venv/bin/activate
    jira-to-md test-connection
    ```
+
+Once set up, you can use the skill from any directory in Claude Code!
 
 ## Available Commands
 
@@ -138,9 +165,9 @@ The skill uses configuration from:
 
 ### Default Output
 
-- Markdown files are saved to: `./output/`
-- Images are saved to: `./output/images/`
-- Logs are saved to: `./logs/jira_to_markdown.log`
+- Markdown files are saved to: `$JIRA_TO_MD_HOME/output/`
+- Images are saved to: `$JIRA_TO_MD_HOME/output/images/`
+- Logs are saved to: `$JIRA_TO_MD_HOME/logs/jira_to_markdown.log`
 
 ## Architecture
 

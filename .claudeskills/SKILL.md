@@ -14,8 +14,11 @@ This skill converts JIRA tickets to Markdown files using the JIRA REST API.
 Before using this skill, ensure:
 1. Python 3.8+ is installed
 2. uv is installed: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-3. Dependencies are installed: `cd /Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN && uv sync`
-4. JIRA credentials are configured in `/Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN/.env`:
+3. Set environment variable `JIRA_TO_MD_HOME` to your installation path:
+   - Add to your `~/.zshrc` or `~/.bashrc`: `export JIRA_TO_MD_HOME="/Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN"`
+   - Or run: `echo 'export JIRA_TO_MD_HOME="/Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN"' >> ~/.zshrc`
+4. Dependencies are installed: `cd $JIRA_TO_MD_HOME && uv sync`
+5. JIRA credentials are configured in `$JIRA_TO_MD_HOME/.env`:
    - JIRA_URL=https://your-company.atlassian.net
    - JIRA_USERNAME=your.email@example.com
    - JIRA_API_TOKEN=your_api_token_here
@@ -31,7 +34,7 @@ Test connection to JIRA instance.
 
 **Action**: Run the command:
 ```bash
-cd /Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN && source .venv/bin/activate && jira-to-md test-connection
+cd "$JIRA_TO_MD_HOME" && source .venv/bin/activate && jira-to-md test-connection
 ```
 
 ### fetch [ticket-key] [options]
@@ -45,7 +48,7 @@ Fetch a single JIRA ticket and convert to Markdown.
 
 **Action**: Run the command:
 ```bash
-cd /Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN && source .venv/bin/activate && jira-to-md fetch $ARGUMENTS
+cd "$JIRA_TO_MD_HOME" && source .venv/bin/activate && jira-to-md fetch $ARGUMENTS
 ```
 
 ### query [jql-query] [options]
@@ -60,7 +63,7 @@ Fetch tickets using JQL query and convert to Markdown.
 
 **Action**: Run the command:
 ```bash
-cd /Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN && source .venv/bin/activate && jira-to-md query $ARGUMENTS
+cd "$JIRA_TO_MD_HOME" && source .venv/bin/activate && jira-to-md query $ARGUMENTS
 ```
 
 ### bulk [ticket-keys...] [options]
@@ -75,7 +78,7 @@ Fetch multiple specific tickets and convert to Markdown.
 
 **Action**: Run the command:
 ```bash
-cd /Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN && source .venv/bin/activate && jira-to-md bulk $ARGUMENTS
+cd "$JIRA_TO_MD_HOME" && source .venv/bin/activate && jira-to-md bulk $ARGUMENTS
 ```
 
 ### list-fields
@@ -83,7 +86,7 @@ List all custom fields available in JIRA.
 
 **Action**: Run the command:
 ```bash
-cd /Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN && source .venv/bin/activate && jira-to-md list-fields
+cd "$JIRA_TO_MD_HOME" && source .venv/bin/activate && jira-to-md list-fields
 ```
 
 ### download-images [options]
@@ -96,7 +99,7 @@ Download images from markdown files and update references.
 
 **Action**: Run the command:
 ```bash
-cd /Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN && source .venv/bin/activate && jira-to-md download-images $ARGUMENTS
+cd "$JIRA_TO_MD_HOME" && source .venv/bin/activate && jira-to-md download-images $ARGUMENTS
 ```
 
 ## Instructions
@@ -120,6 +123,6 @@ When this skill is invoked:
 
 ## Output
 
-- Markdown files are saved to: `/Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN/output/`
-- Images are saved to: `/Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN/output/images/`
-- Logs are saved to: `/Users/pengfeiren/Documents/Crains/JIRA_TO_MARKDOWN/logs/jira_to_markdown.log`
+- Markdown files are saved to: `$JIRA_TO_MD_HOME/output/`
+- Images are saved to: `$JIRA_TO_MD_HOME/output/images/`
+- Logs are saved to: `$JIRA_TO_MD_HOME/logs/jira_to_markdown.log`
